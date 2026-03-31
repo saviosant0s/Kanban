@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kanban Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e12;
+    --surface: #16161d;
+    --surface2: #1e1e28;
+    --border: #2a2a38;
+    --text: #e8e8f0;
+    --muted: #6b6b88;
+    --accent: #7c6aff;
+    --accent2: #ff6a8a;
+    --accent3: #6affb8;
+
+    --todo-col: #232330;
+    --todo-accent: #7c6aff;
+    --doing-col: #231e30;
+    --doing-accent: #ff6a8a;
+    --done-col: #1a2e28;
+    --done-accent: #6affb8;
+
+    --p-high: #ff6a8a;
+    --p-med: #ffb86a;
+    --p-low: #6affb8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 0%, rgba(124,106,255,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 80% 100%, rgba(106,255,184,0.07) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 40px 20px;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(8px);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .sort-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .sort-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sort-btn:hover, .sort-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(124,106,255,0.08);
+  }
+  .sort-btn svg { width: 14px; height: 14px; }
+
+  .add-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 20px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent), #5a4acc);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(124,106,255,0.3);
+  }
+  .add-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(124,106,255,0.4); }
+
+  /* BOARD */
+  .board {
+    position: relative;
+    z-index: 5;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    padding: 32px 40px;
+    min-height: calc(100vh - 90px);
+  }
+
+  .column {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+
+  .col-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .col-header-left { display: flex; align-items: center; gap: 10px; }
+
+  .col-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+
+  .col-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .col-count {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    background: var(--surface2);
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .col-add {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .col-add:hover { border-color: var(--accent); color: var(--accent); }
+
+  .cards-list {
+    flex: 1;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 200px;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--surface2);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    cursor: grab;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    animation: cardIn 0.3s ease both;
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 3px 0 0 3px;
+  }
+  .card.p-high::before { background: var(--p-high); }
+  .card.p-med::before { background: var(--p-med); }
+  .card.p-low::before { background: var(--p-low); }
+
+  .card:hover {
+    border-color: rgba(124,106,255,0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  .card.dragging { opacity: 0.4; transform: scale(0.97); cursor: grabbing; }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .card-title {
+    font-size: 0.88rem;
+    font-weight: 500;
+    line-height: 1.4;
+    flex: 1;
+  }
+
+  .card-menu-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: color 0.15s;
+    flex-shrink: 0;
+  }
+  .card-menu-btn:hover { color: var(--text); }
+
+  .card-desc {
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .priority-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 5px;
+  }
+  .priority-badge.p-high { background: rgba(255,106,138,0.12); color: var(--p-high); }
+  .priority-badge.p-med  { background: rgba(255,184,106,0.12); color: var(--p-med); }
+  .priority-badge.p-low  { background: rgba(106,255,184,0.12); color: var(--p-low); }
+  .priority-badge svg { width: 10px; height: 10px; }
+
+  .card-date {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+  .card-date svg { width: 11px; height: 11px; }
+  .card-date.overdue { color: var(--p-high); }
+  .card-date.soon { color: var(--p-med); }
+
+  .card-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .card-action-btn {
+    flex: 1;
+    padding: 5px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--muted);
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .card-action-btn:hover { color: var(--accent); border-color: var(--accent); background: rgba(124,106,255,0.06); }
+  .card-action-btn.delete:hover { color: var(--p-high); border-color: var(--p-high); background: rgba(255,106,138,0.06); }
+
+  /* DRAG OVER */
+  .column.drag-over .cards-list {
+    background: rgba(124,106,255,0.05);
+    border-radius: 8px;
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    animation: modalIn 0.25s ease both;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+  }
+
+  .form-group {
+    margin-bottom: 18px;
+  }
+  .form-label {
+    display: block;
+    font-size: 0.77rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--accent);
+  }
+  .form-textarea { resize: vertical; min-height: 70px; }
+  .form-select option { background: var(--surface2); }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+  .btn-cancel {
+    flex: 1; padding: 10px;
+    border-radius: 10px; border: 1px solid var(--border);
+    background: none; color: var(--muted);
+    font-family: 'DM Sans', sans-serif; font-size: 0.88rem;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-cancel:hover { border-color: var(--text); color: var(--text); }
+  .btn-save {
+    flex: 2; padding: 10px;
+    border-radius: 10px; border: none;
+    background: linear-gradient(135deg, var(--accent), #5a4acc);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 500;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(124,106,255,0.3);
+  }
+  .btn-save:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,106,255,0.4); }
+
+  /* COLUMN COLORS */
+  .col-todo .col-dot { background: var(--todo-accent); }
+  .col-todo .col-title { color: var(--todo-accent); }
+  .col-doing .col-dot { background: var(--doing-accent); }
+  .col-doing .col-title { color: var(--doing-accent); }
+  .col-done .col-dot { background: var(--done-accent); }
+  .col-done .col-title { color: var(--done-accent); }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    display: none;
+  }
+  .empty-state svg { width: 32px; height: 32px; margin-bottom: 10px; opacity: 0.4; }
+
+  @media (max-width: 900px) {
+    .board { grid-template-columns: 1fr; padding: 20px; }
+    header { padding: 20px; flex-wrap: wrap; gap: 12px; }
+    .header-controls { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Kanban</div>
+  <div class="header-controls">
+    <span class="sort-label">Ordenar por:</span>
+    <button class="sort-btn active" id="sort-none" onclick="setSort('none')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Padrão
+    </button>
+    <button class="sort-btn" id="sort-priority" onclick="setSort('priority')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/></svg>
+      Prioridade
+    </button>
+    <button class="sort-btn" id="sort-date" onclick="setSort('date')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Data mais próxima
+    </button>
+    <button class="add-btn" onclick="openModal()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nova Tarefa
+    </button>
+  </div>
+</header>
+
+<div class="board">
+  <div class="column col-todo" id="col-todo" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event, 'todo')">
+    <div class="col-header">
+      <div class="col-header-left">
+        <div class="col-dot"></div>
+        <span class="col-title">A Fazer</span>
+        <div class="col-count" id="count-todo">0</div>
+      </div>
+      <button class="col-add" onclick="openModal('todo')" title="Adicionar tarefa">+</button>
+    </div>
+    <div class="cards-list" id="list-todo"></div>
+  </div>
+
+  <div class="column col-doing" id="col-doing" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event, 'doing')">
+    <div class="col-header">
+      <div class="col-header-left">
+        <div class="col-dot"></div>
+        <span class="col-title">Em Progresso</span>
+        <div class="col-count" id="count-doing">0</div>
+      </div>
+      <button class="col-add" onclick="openModal('doing')" title="Adicionar tarefa">+</button>
+    </div>
+    <div class="cards-list" id="list-doing"></div>
+  </div>
+
+  <div class="column col-done" id="col-done" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event, 'done')">
+    <div class="col-header">
+      <div class="col-header-left">
+        <div class="col-dot"></div>
+        <span class="col-title">Concluído</span>
+        <div class="col-count" id="count-done">0</div>
+      </div>
+      <button class="col-add" onclick="openModal('done')" title="Adicionar tarefa">+</button>
+    </div>
+    <div class="cards-list" id="list-done"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModalIfOutside(event)">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Nova Tarefa</div>
+    <div class="form-group">
+      <label class="form-label">Título *</label>
+      <input class="form-input" id="f-title" placeholder="Nome da tarefa..." />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descrição</label>
+      <textarea class="form-textarea" id="f-desc" placeholder="Detalhes opcionais..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Prioridade</label>
+        <select class="form-select" id="f-priority">
+          <option value="high">🔴 Alta</option>
+          <option value="med" selected>🟡 Média</option>
+          <option value="low">🟢 Baixa</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data de entrega</label>
+        <input class="form-input" type="date" id="f-date" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Coluna</label>
+      <select class="form-select" id="f-col">
+        <option value="todo">A Fazer</option>
+        <option value="doing">Em Progresso</option>
+        <option value="done">Concluído</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveCard()">Salvar Tarefa</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let cards = JSON.parse(localStorage.getItem('kanban-cards') || '[]');
+let sortMode = 'none';
+let editingId = null;
+let draggedId = null;
+
+const priorityOrder = { high: 0, med: 1, low: 2 };
+
+// Default cards
+if (!cards.length) {
+  const today = new Date();
+  const fmt = d => d.toISOString().split('T')[0];
+  const add = (d, n) => { let x = new Date(d); x.setDate(x.getDate()+n); return x; };
+  cards = [
+    { id: uid(), title: 'Redesign da homepage', desc: 'Atualizar layout e paleta de cores', priority: 'high', date: fmt(add(today, 2)), col: 'todo' },
+    { id: uid(), title: 'Integração com API de pagamentos', desc: 'Implementar Stripe e testes', priority: 'high', date: fmt(add(today, 5)), col: 'doing' },
+    { id: uid(), title: 'Escrever documentação', desc: '', priority: 'low', date: fmt(add(today, 14)), col: 'todo' },
+    { id: uid(), title: 'Corrigir bug no login', desc: 'Usuários não conseguem redefinir senha', priority: 'high', date: fmt(add(today, 1)), col: 'doing' },
+    { id: uid(), title: 'Configurar CI/CD', desc: 'Pipeline GitHub Actions', priority: 'med', date: fmt(add(today, 7)), col: 'todo' },
+    { id: uid(), title: 'Deploy v1.0', desc: 'Publicar versão inicial em produção', priority: 'med', date: fmt(add(today, -2)), col: 'done' },
+  ];
+  save();
+}
+
+function uid() { return Math.random().toString(36).slice(2,10); }
+
+function save() { localStorage.setItem('kanban-cards', JSON.stringify(cards)); }
+
+function setSort(mode) {
+  sortMode = mode;
+  ['none','priority','date'].forEach(m => {
+    document.getElementById('sort-'+m).classList.toggle('active', m === mode);
+  });
+  render();
+}
+
+function getSorted(colCards) {
+  if (sortMode === 'priority') {
+    return [...colCards].sort((a,b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+  }
+  if (sortMode === 'date') {
+    return [...colCards].sort((a,b) => {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return new Date(a.date) - new Date(b.date);
+    });
+  }
+  return colCards;
+}
+
+function dateStatus(dateStr) {
+  if (!dateStr) return '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dateStr + 'T00:00:00');
+  const diff = Math.ceil((d - today) / 86400000);
+  if (diff < 0) return 'overdue';
+  if (diff <= 3) return 'soon';
+  return '';
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+}
+
+function priorityIcon(p) {
+  const icons = {
+    high: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/></svg>`,
+    med:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+    low:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>`,
+  };
+  const labels = { high: 'Alta', med: 'Média', low: 'Baixa' };
+  return `<span class="priority-badge p-${p}">${icons[p]}${labels[p]}</span>`;
+}
+
+function render() {
+  ['todo','doing','done'].forEach(col => {
+    const list = document.getElementById('list-'+col);
+    const colCards = getSorted(cards.filter(c => c.col === col));
+    document.getElementById('count-'+col).textContent = colCards.length;
+    list.innerHTML = '';
+
+    if (colCards.length === 0) {
+      list.innerHTML = `<div class="empty-state" style="display:block">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+        <div>Sem tarefas</div>
+      </div>`;
+      return;
+    }
+
+    colCards.forEach(card => {
+      const ds = dateStatus(card.date);
+      const div = document.createElement('div');
+      div.className = `card p-${card.priority}`;
+      div.setAttribute('draggable', true);
+      div.dataset.id = card.id;
+      div.innerHTML = `
+        <div class="card-top">
+          <div class="card-title">${esc(card.title)}</div>
+        </div>
+        ${card.desc ? `<div class="card-desc">${esc(card.desc)}</div>` : ''}
+        <div class="card-footer">
+          ${priorityIcon(card.priority)}
+          ${card.date ? `<div class="card-date ${ds}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            ${ds === 'overdue' ? '⚠ ' : ''}${formatDate(card.date)}
+          </div>` : ''}
+        </div>
+        <div class="card-actions">
+          <button class="card-action-btn" onclick="editCard('${card.id}')">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Editar
+          </button>
+          <button class="card-action-btn delete" onclick="deleteCard('${card.id}')">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            Excluir
+          </button>
+        </div>
+      `;
+      div.addEventListener('dragstart', e => {
+        draggedId = card.id;
+        div.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      div.addEventListener('dragend', () => div.classList.remove('dragging'));
+      list.appendChild(div);
+    });
+  });
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// DRAG & DROP
+function dragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function drop(e, col) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!draggedId) return;
+  const card = cards.find(c => c.id === draggedId);
+  if (card) { card.col = col; save(); render(); }
+  draggedId = null;
+}
+
+// MODAL
+function openModal(col) {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Nova Tarefa';
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-priority').value = 'med';
+  document.getElementById('f-date').value = '';
+  document.getElementById('f-col').value = col || 'todo';
+  document.getElementById('modal').classList.add('open');
+}
+
+function editCard(id) {
+  const card = cards.find(c => c.id === id);
+  if (!card) return;
+  editingId = id;
+  document.getElementById('modal-title').textContent = 'Editar Tarefa';
+  document.getElementById('f-title').value = card.title;
+  document.getElementById('f-desc').value = card.desc || '';
+  document.getElementById('f-priority').value = card.priority;
+  document.getElementById('f-date').value = card.date || '';
+  document.getElementById('f-col').value = card.col;
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function closeModalIfOutside(e) {
+  if (e.target === document.getElementById('modal')) closeModal();
+}
+
+function saveCard() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { document.getElementById('f-title').focus(); return; }
+  const data = {
+    title,
+    desc: document.getElementById('f-desc').value.trim(),
+    priority: document.getElementById('f-priority').value,
+    date: document.getElementById('f-date').value,
+    col: document.getElementById('f-col').value,
+  };
+  if (editingId) {
+    const idx = cards.findIndex(c => c.id === editingId);
+    cards[idx] = { ...cards[idx], ...data };
+  } else {
+    cards.push({ id: uid(), ...data });
+  }
+  save();
+  render();
+  closeModal();
+}
+
+function deleteCard(id) {
+  cards = cards.filter(c => c.id !== id);
+  save();
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
