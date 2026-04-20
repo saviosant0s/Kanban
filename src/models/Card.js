@@ -15,7 +15,7 @@ export class Card {
 
   static create(payload) {
     const normalized = {
-      id: payload.id ?? Card.createId(),
+      id: payload.id || Card.createId(),
       title: String(payload.title ?? "").trim(),
       desc: String(payload.desc ?? "").trim(),
       priority: payload.priority ?? "med",
