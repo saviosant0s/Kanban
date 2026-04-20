@@ -18,14 +18,20 @@
   --radius-sm: 10px;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+html {
+  height: 100%;
+}
+
 body {
-  min-height: 100vh;
+  min-height: 100%;
   color: var(--text);
   background:
     radial-gradient(circle at top left, rgba(111, 124, 255, 0.16), transparent 30%),
@@ -46,6 +52,8 @@ button {
   cursor: pointer;
 }
 
+/* ─── App shell ─────────────────────────────────── */
+
 .app-shell {
   position: relative;
   z-index: 1;
@@ -58,7 +66,6 @@ button {
   gap: 20px;
   padding: 28px 40px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
 }
 
 .logo {
@@ -69,6 +76,7 @@ button {
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .app-subtitle {
@@ -110,7 +118,12 @@ button {
 .icon-btn,
 .column-add,
 .card-action-btn {
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .sort-btn,
@@ -155,6 +168,8 @@ button {
 .btn-primary:hover {
   transform: translateY(-1px);
 }
+
+/* ─── Board ─────────────────────────────────────── */
 
 .board {
   display: grid;
@@ -210,19 +225,12 @@ button {
   width: 12px;
   height: 12px;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.column[data-column="todo"] .column-dot {
-  background: var(--accent);
-}
-
-.column[data-column="doing"] .column-dot {
-  background: var(--accent-secondary);
-}
-
-.column[data-column="done"] .column-dot {
-  background: var(--accent-success);
-}
+.column[data-column="todo"] .column-dot { background: var(--accent); }
+.column[data-column="doing"] .column-dot { background: var(--accent-secondary); }
+.column[data-column="done"] .column-dot { background: var(--accent-success); }
 
 .column-title {
   font-family: "Syne", sans-serif;
@@ -249,6 +257,7 @@ button {
   place-items: center;
   width: 36px;
   height: 36px;
+  flex-shrink: 0;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.05);
   color: var(--text);
@@ -258,6 +267,8 @@ button {
 .icon-btn:hover {
   background: rgba(255, 255, 255, 0.12);
 }
+
+/* ─── Cards ─────────────────────────────────────── */
 
 .cards-list {
   flex: 1;
@@ -286,21 +297,11 @@ button {
   cursor: grab;
 }
 
-.card.dragging {
-  opacity: 0.5;
-}
+.card.dragging { opacity: 0.5; }
 
-.card[data-priority="high"] {
-  border-color: rgba(255, 125, 159, 0.35);
-}
-
-.card[data-priority="med"] {
-  border-color: rgba(255, 184, 102, 0.35);
-}
-
-.card[data-priority="low"] {
-  border-color: rgba(94, 224, 181, 0.35);
-}
+.card[data-priority="high"] { border-color: rgba(255, 125, 159, 0.35); }
+.card[data-priority="med"]  { border-color: rgba(255, 184, 102, 0.35); }
+.card[data-priority="low"]  { border-color: rgba(94, 224, 181, 0.35); }
 
 .card-title {
   font-size: 1rem;
@@ -334,33 +335,17 @@ button {
   font-weight: 700;
 }
 
-.priority-badge.high {
-  color: var(--danger);
-  background: rgba(255, 125, 159, 0.12);
-}
-
-.priority-badge.med {
-  color: var(--warning);
-  background: rgba(255, 184, 102, 0.12);
-}
-
-.priority-badge.low {
-  color: var(--accent-success);
-  background: rgba(94, 224, 181, 0.12);
-}
+.priority-badge.high { color: var(--danger);         background: rgba(255, 125, 159, 0.12); }
+.priority-badge.med  { color: var(--warning);        background: rgba(255, 184, 102, 0.12); }
+.priority-badge.low  { color: var(--accent-success); background: rgba(94, 224, 181, 0.12); }
 
 .card-date {
   color: var(--muted);
   background: rgba(255, 255, 255, 0.06);
 }
 
-.card-date.overdue {
-  color: var(--danger);
-}
-
-.card-date.soon {
-  color: var(--warning);
-}
+.card-date.overdue { color: var(--danger); }
+.card-date.soon    { color: var(--warning); }
 
 .card-actions {
   display: flex;
@@ -376,27 +361,33 @@ button {
   color: var(--text);
 }
 
-.card-action-btn.delete {
-  color: var(--danger);
-}
+.card-action-btn.delete { color: var(--danger); }
 
-.card-action-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
+.card-action-btn:hover { background: rgba(255, 255, 255, 0.1); }
+
+/* ─── Modal ──────────────────────────────────────
+   Abordagem mobile-first:
+   - Sem backdrop-filter no overlay (quebra position:fixed no iOS Safari)
+   - overflow-y: auto no overlay + scroll interno no modal
+   - dvh para descontar a barra do Safari
+   - align-items: flex-start em telas pequenas para modal aparecer
+     no topo e não ser cortado pelo teclado virtual
+──────────────────────────────────────────────── */
 
 .modal-overlay {
   position: fixed;
   inset: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-end;        /* mobile: sobe da parte de baixo */
   justify-content: center;
-  padding: 16px;
-  background: rgba(7, 8, 12, 0.68);
+  background: rgba(7, 8, 12, 0.72);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 180ms ease;
+  transition: opacity 200ms ease;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  padding: 0;
+  z-index: 100;
 }
 
 .modal-overlay.open {
@@ -405,15 +396,17 @@ button {
 }
 
 .modal {
-  width: min(100%, 560px);
-  max-height: calc(100dvh - 32px);
+  width: 100%;
+  max-width: 560px;
+  max-height: 92dvh;           /* dvh desconta a barra do browser */
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 28px;
-  background: linear-gradient(180deg, rgba(24, 25, 37, 0.98) 0%, rgba(17, 17, 27, 1) 100%);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0; /* bottom sheet mobile */
+  background: linear-gradient(180deg, rgba(24, 25, 37, 0.99) 0%, rgba(17, 17, 27, 1) 100%);
   box-shadow: var(--shadow);
-  padding: 24px;
-  flex-shrink: 0;
+  padding: 24px 20px 32px;
 }
 
 .modal-header {
@@ -434,8 +427,10 @@ button {
 .modal-title {
   margin-top: 8px;
   font-family: "Syne", sans-serif;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
 }
+
+/* ─── Task form ──────────────────────────────────── */
 
 .task-form {
   margin-top: 22px;
@@ -469,10 +464,12 @@ button {
   color: var(--text);
   padding: 14px 16px;
   outline: none;
+  /* evita zoom automático no iOS (fonte mínima 16px) */
+  font-size: max(16px, 1rem);
 }
 
 .form-textarea {
-  min-height: 120px;
+  min-height: 100px;
   resize: vertical;
 }
 
@@ -481,6 +478,12 @@ button {
 .form-textarea:focus {
   border-color: rgba(111, 124, 255, 0.7);
   box-shadow: 0 0 0 4px rgba(111, 124, 255, 0.12);
+}
+
+/* Corrige cor do select no iOS */
+.form-select option {
+  background: #1a1b28;
+  color: var(--text);
 }
 
 .modal-actions {
@@ -497,6 +500,8 @@ button {
   color: var(--text);
 }
 
+/* ─── Toasts ─────────────────────────────────────── */
+
 .toast-stack {
   position: fixed;
   top: 24px;
@@ -504,7 +509,8 @@ button {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  z-index: 30;
+  z-index: 200;
+  pointer-events: none;
 }
 
 .toast {
@@ -518,13 +524,8 @@ button {
   animation: toast-in 180ms ease;
 }
 
-.toast.success {
-  border-color: rgba(94, 224, 181, 0.3);
-}
-
-.toast.error {
-  border-color: rgba(255, 125, 159, 0.3);
-}
+.toast.success { border-color: rgba(94, 224, 181, 0.3); }
+.toast.error   { border-color: rgba(255, 125, 159, 0.3); }
 
 .toast.fade-out {
   opacity: 0;
@@ -532,34 +533,63 @@ button {
 }
 
 @keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ─── Responsive ─────────────────────────────────── */
+
+/* Tablet */
 @media (max-width: 1100px) {
   .board {
     grid-template-columns: 1fr;
   }
 }
 
+/* Mobile */
 @media (max-width: 720px) {
   .app-header,
   .board {
-    padding-left: 20px;
-    padding-right: 20px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-controls {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .form-row {
     grid-template-columns: 1fr;
   }
 
-  .header-controls {
-    justify-content: flex-start;
+  .toast-stack {
+    top: auto;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+  }
+
+  .toast {
+    min-width: unset;
+    max-width: 100%;
+  }
+}
+
+/* Desktop: modal centralizado e com bordas arredondadas completas */
+@media (min-width: 721px) {
+  .modal-overlay {
+    align-items: center;
+    padding: 24px;
+  }
+
+  .modal {
+    max-height: calc(100dvh - 48px);
+    border-radius: var(--radius-lg);
   }
 }
