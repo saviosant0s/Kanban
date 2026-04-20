@@ -387,13 +387,16 @@ button {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
   background: rgba(7, 8, 12, 0.68);
   opacity: 0;
   pointer-events: none;
   transition: opacity 180ms ease;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-overlay.open {
@@ -403,11 +406,14 @@ button {
 
 .modal {
   width: min(100%, 560px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 28px;
   background: linear-gradient(180deg, rgba(24, 25, 37, 0.98) 0%, rgba(17, 17, 27, 1) 100%);
   box-shadow: var(--shadow);
   padding: 24px;
+  flex-shrink: 0;
 }
 
 .modal-header {
